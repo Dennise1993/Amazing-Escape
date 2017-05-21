@@ -13,7 +13,7 @@ public class MyAIController extends CarController{
 	// How many minimum units the wall is away from the player.
 	private int wallSensitivity = 2;
 	private int reverseSensitivity = 3;
-	private int aheadSensitivity = 1;
+	private int revAheadSensitivity = 1;
 	private boolean hasReversed = false;
 	private boolean isFollowingWall = false; // This is initialized when the car sticks to a wall.
 	private WorldSpatial.RelativeDirection lastTurnDirection = null; // Shows the last turn direction the car takes.
@@ -87,7 +87,7 @@ public class MyAIController extends CarController{
 				// Apply the left turn if you are not currently near a wall.
 				if(!checkFollowingWall(getOrientation(),currentView, wallSensitivity)){
 					applyLeftTurn(getOrientation(),delta);
-					//System.out.println("turnLeft!!!======");
+					System.out.println("turnLeft!!!======");
 				}
 				else{
 					isTurningLeft = false;
@@ -97,18 +97,27 @@ public class MyAIController extends CarController{
 			}
 			//3-point turn
 			else if(isTurningRight&&isReversing) {
-				//System.out.println("general situation!!!======previousangle: "+previousAngle+", currentangle: "+ getAngle());
-				if(getAngle()!=previousAngle && Math.abs(getAngle() - previousAngle)<315 && checkWallAhead(getOrientation(),currentView, aheadSensitivity)) {
-					applyReverseAcceleration();
+				System.out.println("general situation!!!======previousangle: "+previousAngle+", currentangle: "+ getAngle());
+				if(getAngle()!=previousAngle  && Math.abs(previousAngle-getAngle())<330 &&!checkWallAhead(getOrientation(),currentView, revAheadSensitivity)) {
+					
+						//System.out.println("checkFollowingWall(getOrientation(),currentView, 1): "+checkFollowingWall(getOrientation(),currentView, 1));
+						//System.out.println("checkFollowingWall(getOrientation(),currentView, 2): "+checkFollowingWall(getOrientation(),currentView, 2));
+						System.out.println("checkWallAhead(getOrientation(),currentView, 1): "+checkWallAhead(getOrientation(),currentView, 1));
+						System.out.println("checkWallAhead(getOrientation(),currentView, 2): "+checkWallAhead(getOrientation(),currentView, 2));
+						
+						applyReverseAcceleration();
+						hasReversed = true;
+					
+					
 					//System.out.println("currentOrientation: "+getOrientation());
-					//System.out.println("back off, reverse!!!======previousangle: "+previousAngle+", currentangle: "+ getAngle());
-					hasReversed = true;
-					//System.out.println("1meter has wall or not: "+checkWallAhead(getOrientation(),currentView, aheadSensitivity));
+					System.out.println("back off, reverse!!!======previousangle: "+previousAngle+", currentangle: "+ getAngle());
+					
+					//System.out.println("1meter has wall or not: "+checkWallAhead(getOrientation(),currentView, 2));
 				}
-				else if(!checkWallAhead(getOrientation(),currentView, 1)&&hasReversed){
+				else if(checkWallAhead(getOrientation(),currentView, revAheadSensitivity)&&hasReversed){
 					isReversing = false;
 					hasReversed = false;
-					//System.out.println("=========wall behind, stop reverse");
+					System.out.println("=========wall behind, stop reverse");
 				}
 				else{
 					applyRightTurn(getOrientation(),delta);
@@ -386,13 +395,13 @@ public class MyAIController extends CarController{
 		
 		switch(orientation){
 		case EAST:
-			return checkWest(currentView, sensitivity);
-		case NORTH:
 			return checkSouth(currentView, sensitivity);
-		case SOUTH:
-			return checkNorth(currentView, sensitivity);
-		case WEST:
+		case NORTH:
 			return checkEast(currentView, sensitivity);
+		case SOUTH:
+			return checkWest(currentView, sensitivity);
+		case WEST:
+			return checkSouth(currentView, sensitivity);
 		default:
 			return false;
 		}
