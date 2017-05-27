@@ -359,15 +359,15 @@ public class AIController extends CarController {
 	}
 	
 	public boolean checkSouth(HashMap<Coordinate,MapTile> currentView){
-		// Check tiles towards the bottom
-		Coordinate currentPosition = new Coordinate(getPosition());
-		for(int i = 0; i <= wallSensitivity; i++){
-			MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y-i));
-			if(tile.getName().equals("Wall")){
-				return true;
-			}
-		}
-		return false;
+		// Check tiles to towards the top
+				Coordinate currentPosition = new Coordinate(getPosition());
+				for(int i = 0; i <= wallSensitivity; i++){
+					MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y+i));
+					if(tile.getName().equals("Wall")){
+						return true;
+					}
+				}
+				return false;
 	}
 	
 	

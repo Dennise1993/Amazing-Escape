@@ -283,6 +283,7 @@ public class Car extends Sprite{
 		angle -= ROTATING_FACTOR * delta;
 
 		if(reversing){
+			
 			angle *= -1;
 		}
 		snapTo(reversing,currentOrientation,WorldSpatial.RelativeDirection.RIGHT);

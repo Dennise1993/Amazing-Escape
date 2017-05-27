@@ -6,31 +6,51 @@ import controller.CarController;
 import tiles.MapTile;
 import utilities.Coordinate;
 import world.Car;
+import world.WorldDeadEnd;
 import world.WorldSpatial;
+import world.WorldSpatial.Direction;
+import world.WorldSpatial.RelativeDirection;
+
+
 
 public class MyAIController extends CarController{
-
-	// How many minimum units the wall is away from the player.
+	
+	private WorldSpatial.RelativeDirection lastTurnDirection = null;
+	HashMap<Coordinate, MapTile> currentView = null;
+	private WorldSpatial.Direction previousState = null;
+	
+	
 	private int wallSensitivity = 2;
-	private int reverseSensitivity = 3;
-	private int revAheadSensitivity = 1;
-	private boolean hasReversed = false;
-	private boolean isFollowingWall = false; // This is initialized when the car sticks to a wall.
-	private WorldSpatial.RelativeDirection lastTurnDirection = null; // Shows the last turn direction the car takes.
+	private int aheadSensitivity = 1;
+	private int rightThreeSen = 2; //**
+	private int rightReverseSen = 1; //**
+	private int threeAheadSen = 1; //**
+	private int threeLeftSen = 1;
+	private int aheadRoadWallSen = 1;
+	private int parraSensitivity = 1;
+	
+	private boolean isFollowingWall = false;
+	private boolean isStickingWall = false;
+	private boolean isWallRight = false;
+	private boolean isWallRightTwice = false;
+	
+	//**
+	private boolean normTurnLeft = false;
+	private boolean normTurnRight = false;
+	private boolean threePointTurn = false;
+	private boolean reverse = false;
+	
+	
 	private boolean isTurningLeft = false;
-	private boolean isTurningRight = false; 
-	private WorldSpatial.Direction previousState = null; // Keeps track of the previous state
+	private boolean isTurningRight = false;
+	private boolean isReversing = false;
+	private boolean hasReversed = false;
 	
-	// Car Speed to move at
 	private final float CAR_SPEED = 3;
-	
-	// Offset used to differentiate between 0 and 360 degrees
 	private int EAST_THRESHOLD = 3;
 	
-	
-	//================reverse=====================
-	private boolean isReversing = false;
-	private float previousAngle = 0;
+	//**
+	float previousAngle;
 	
 	public MyAIController(Car car) {
 		super(car);
@@ -38,155 +58,478 @@ public class MyAIController extends CarController{
 
 	@Override
 	public void update(float delta) {
+		drive(delta);
 		
-		// Gets what the car can see
-		HashMap<Coordinate, MapTile> currentView = getView();
-		
-		/* Check if the car's (state) orientation has changed or not
-		 * if it has changed, stop turning and assign current orientation 
-		 * to previous state (attributes in this AIController class)
-		 */		
+	}
+
+	private void drive(float delta) {
+		currentView = getView();
 		checkStateChange();
-
-
-		// If you are not following a wall initially, find a wall to stick to!
-		if(!isFollowingWall){
-			if(getVelocity() < CAR_SPEED){// Initial Speed is 0
-				applyForwardAcceleration(); //Change the car's attribute "accelerating" to "true"
+		System.out.println("current Orientation: "+getOrientation());
+		 
+		isStickingWall = checkFollowingWall();
+		if(isFollowingWall) {
+			readjust(delta);
+			if(normTurnRight){	
+				//readjust(delta);
+				applyRightTurn(delta); //**reactRightTurn
+				//applyForwardAcceleration();
+				System.out.println("turn right");
 			}
-			// Get the car current orientation, and if it is not North,
-			// then turn towards the north in wise clock way
-			if(!getOrientation().equals(WorldSpatial.Direction.NORTH)){
-				lastTurnDirection = WorldSpatial.RelativeDirection.LEFT;
-				applyLeftTurn(getOrientation(),delta);// call method in Car (car.getOrientation)
-			}
-			//Check if there is a wall on the north within 2 units of tiles(WallSensitivity)
-			
-			if(checkNorth(currentView, wallSensitivity)){
-				// Turn right until we go back to east!
-				if(!getOrientation().equals(WorldSpatial.Direction.EAST)){
-					lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
-					applyRightTurn(getOrientation(),delta);
-				}
-				else{
-					isFollowingWall = true;
-				}
-			}
-		}
-		// Once the car is already stuck to a wall, apply the following logic
-		else{
-			
-			// Readjust the car if it is misaligned.
-			readjust(lastTurnDirection,delta);
-			
-			if(isTurningRight &&!isReversing ){
-				applyRightTurn(getOrientation(),delta);
-				//System.out.println("turnRight!!!======");
-			}
-			else if(isTurningLeft){
+			else if(normTurnLeft){
+				//readjust(delta);
 				// Apply the left turn if you are not currently near a wall.
-				if(!checkFollowingWall(getOrientation(),currentView, wallSensitivity)){
-					applyLeftTurn(getOrientation(),delta);
-					System.out.println("turnLeft!!!======");
-				}
-				else{
-					isTurningLeft = false;
-					//System.out.println("has wall on the left, so stop turnLeft!!!======");
-				}
-				
+				reactLeftTurn(delta);	
+				System.out.println("turn left");
+			}else if(threePointTurn){
+				reactThreePointTurn(delta, previousAngle);
+				System.out.println("3point");
+			}else if(reverse){
+				//reactReverse(delta);
 			}
-			//3-point turn
-			else if(isTurningRight&&isReversing) {
-				System.out.println("general situation!!!======previousangle: "+previousAngle+", currentangle: "+ getAngle());
-				if(getAngle()!=previousAngle  && Math.abs(previousAngle-getAngle())<330 &&!checkWallAhead(getOrientation(),currentView, revAheadSensitivity)) {
-					
-						//System.out.println("checkFollowingWall(getOrientation(),currentView, 1): "+checkFollowingWall(getOrientation(),currentView, 1));
-						//System.out.println("checkFollowingWall(getOrientation(),currentView, 2): "+checkFollowingWall(getOrientation(),currentView, 2));
-						System.out.println("checkWallAhead(getOrientation(),currentView, 1): "+checkWallAhead(getOrientation(),currentView, 1));
-						System.out.println("checkWallAhead(getOrientation(),currentView, 2): "+checkWallAhead(getOrientation(),currentView, 2));
-						
-						applyReverseAcceleration();
-						hasReversed = true;
-					
-					
-					//System.out.println("currentOrientation: "+getOrientation());
-					System.out.println("back off, reverse!!!======previousangle: "+previousAngle+", currentangle: "+ getAngle());
-					
-					//System.out.println("1meter has wall or not: "+checkWallAhead(getOrientation(),currentView, 2));
-				}
-				else if(checkWallAhead(getOrientation(),currentView, revAheadSensitivity)&&hasReversed){
-					isReversing = false;
-					hasReversed = false;
-					System.out.println("=========wall behind, stop reverse");
-				}
-				else{
-					applyRightTurn(getOrientation(),delta);
-					//System.out.println("back off, turn right!!!======");
-				}
-				
-			}
-			// Try to determine whether or not the car is next to a wall.
-			else if(checkFollowingWall(getOrientation(),currentView, wallSensitivity)){
+			else if(isStickingWall){
+				System.out.println("follow wall");
 				// Maintain some velocity
 				if(getVelocity() < CAR_SPEED){
-					//System.out.println("speed up!!!======");
 					applyForwardAcceleration();
 				}
-				// If there is wall right within 2 units tiles, and 
-				// there is wall ahead within 2 units tiles, back off!
-				if(checkWallAhead(getOrientation(),currentView, wallSensitivity)
-						&& !checkWallRight(getOrientation(),currentView, reverseSensitivity)){
-					//System.out.println("U turn!!!======");
-					lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
-					isTurningRight = true;				
-					
-				}
-				else if(checkWallAhead(getOrientation(),currentView, reverseSensitivity)
-						&& checkWallRight(getOrientation(),currentView, reverseSensitivity)){
-					//System.out.println("3-point turn!!!======");
-					lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
-					isTurningRight = true;	
-					isReversing = true;
+				// If there is wall ahead, check dead end type!
+				WorldDeadEnd deadEnd = detectDeadEnd();
+				
+				if(deadEnd == WorldDeadEnd.THREEPOINT){
 					previousAngle = getAngle();
-					//System.out.println("previousangle: "+ getAngle());
+					if(!checkHasTurn()){
+						setThreePointTurn();
+					}else{
+						normTurnRight = true;
+					}
+				}else if(deadEnd == WorldDeadEnd.REVERSEOUT){
+					//setReverseTurn();
+					System.out.println("reverse");
+				}else if(deadEnd == WorldDeadEnd.UTURN){
+					setRightTurn();
+					System.out.println("uturn");
+				}else if(getDistanceAheadWall()!=-1&&getDistanceAheadWall()+1<=wallSensitivity&&getDisRightWall()==-1){
+					System.out.println("no dead end but wall ahead");
+					setRightTurn();
 				}
-
 			}
 			// This indicates that I can do a left turn if I am not turning right
 			else{
-				//System.out.println("no wall on the left side!!!======");
-				lastTurnDirection = WorldSpatial.RelativeDirection.LEFT;
-				isTurningLeft = true;
+				setLeftTurn();
+				System.out.println("no wall to follow");
 			}
+		}else{
+			findWallToFollow(delta);//**
+			
+		}
+		
+	}
+	
+	private boolean checkHasTurn() {
+		switch(getOrientation()){
+		case EAST:
+			System.out.println("currentangle: "+getAngle());
+			return (getAngle()>30 );
+		case NORTH:
+			return (WorldSpatial.NORTH_DEGREE-previousAngle>30);
+		case SOUTH:
+			return (WorldSpatial.SOUTH_DEGREE-previousAngle>30);
+		case WEST:
+			return (WorldSpatial.WEST_DEGREE-previousAngle>30);
+		default:
+			return false;
+		}
+	}
+
+	
+
+	private void setRightTurn() {
+		lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
+		isTurningRight = true;
+		normTurnRight = true;
+		
+	}
+
+	private void findWallToFollow(float delta) {
+		if(getVelocity() < CAR_SPEED){
+			applyForwardAcceleration();
+		}
+		// Turn towards the north
+		if(!getOrientation().equals(WorldSpatial.Direction.NORTH)){
+			lastTurnDirection = WorldSpatial.RelativeDirection.LEFT;
+			applyLeftTurn(delta);
+		}
+		if(checkNorth()){
+			// Turn right until we go back to east!
+			if(!getOrientation().equals(WorldSpatial.Direction.EAST)){
+				lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
+				applyRightTurn(delta);
+			}
+			else{
+				isFollowingWall = true;
+				System.out.println("has found wall");
+			}
+		}
+		
+	}
+
+	private void checkStateChange() {
+		
+		if(previousState == null){
+			previousState = getOrientation();
+		}
+		else{
+			if(previousState != getOrientation()){
+				if(normTurnLeft){
+					normTurnLeft = false;
+					isTurningLeft = false;
+				}
+				if(normTurnRight){
+					normTurnRight = false;
+					isTurningRight = false;
+				}
+				if(threePointTurn){
+					threePointTurn = false;
+					isTurningRight = false;
+					hasReversed = false;
+					isReversing = false;
+				}
+				if(reverse){
+					reverse = false;
+				}
+				previousState = getOrientation();
+				System.out.println("state: "+previousState);
+			}
+		}
+		
+	}
+
+	private void reactThreePointTurn(float delta, float previousAngle) {
+		
+		int disAheadWall = getDistanceAheadWall();
+		int disRightWall = getDisRightWall();
+		float currentAngle = getAngle();
+		
+		System.out.println("react: diff: "+Math.abs(currentAngle-previousAngle));
+		System.out.println("react: ori: "+getOrientation());
+		
+		if(getOrientation() == WorldSpatial.Direction.EAST && currentAngle!=0){
+			currentAngle = 360 - currentAngle;
+		}
+		
+		if(Math.abs(currentAngle-previousAngle)<80){
+			lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
+			isTurningRight = true;
+			applyRightTurn(delta);
+			System.out.println("3-point-right");
+		}else{
+			
+			if(disAheadWall<=1 && !isReversing){
+				isReversing = true;
+				applyBrake();
+				System.out.println("3-point-start-reverse");
+			}else if(disRightWall>=2 && hasReversed){
+				isReversing = false;
+				threePointTurn = false;
+				hasReversed = false;
+				
+				applyBrake();
+				System.out.println("stop reverse");
+			}else if(isReversing){
+				hasReversed = true;
+				applyReverseAcceleration();
+				System.out.println("3-point-reversing");
+			}
+			
+			
+		}
+		
+		
+	}
+
+	
+
+	private void setThreePointTurn() {
+		threePointTurn = true;		
+	}
+
+	private void setLeftTurn() {
+		lastTurnDirection = WorldSpatial.RelativeDirection.LEFT;
+		normTurnLeft = true;
+		isTurningLeft = true;
+		
+	}
+
+	private WorldDeadEnd detectDeadEnd() {
+		System.out.println("check end");
+		int disAheadWall = getDistanceAheadWall();
+		int disRightWall = getDisRightWall();
+		
+			if(disAheadWall!=-1 && disRightWall!=-1 && disAheadWall<=aheadSensitivity && disRightWall==rightThreeSen){
+				return WorldDeadEnd.THREEPOINT;
+			}else if(disAheadWall!=-1 && disRightWall!=-1&&disAheadWall<=aheadSensitivity && disRightWall==rightReverseSen){
+				return WorldDeadEnd.REVERSEOUT;
+			}else if(disAheadWall!=-1 && disRightWall!=-1&&disAheadWall<=aheadSensitivity && disRightWall>rightThreeSen){
+				return WorldDeadEnd.UTURN;
+			}
+		
+		
+		return null;
+	}
+	
+	private int getDistanceLeftWall() {
+		switch(getOrientation()){
+		case EAST:
+			return getDisNorth();
+		case NORTH:
+			return getDisWest();
+		case SOUTH:
+			return getDisEast();
+		case WEST:
+			return getDisSouth();
+		default:
+			return -1;
+		}
+	}
+
+	private int getDisRightWall() {
+		switch(getOrientation()){
+		case EAST:
+			return getDisSouth();
+		case NORTH:
+			return getDisEast();
+		case SOUTH:
+			return getDisWest();
+		case WEST:
+			return getDisNorth();
+		default:
+			return -1;
 		}
 	}
 	
-	/**
-	 * Readjust the car to the orientation we are in.
-	 * @param lastTurnDirection
-	 * @param delta
-	 */
-	private void readjust(WorldSpatial.RelativeDirection lastTurnDirection, float delta) {
+	private int getDistanceAheadWall() {
+		switch(getOrientation()){
+		case EAST:
+			return getDisEast();
+		case NORTH:
+			return getDisNorth();
+		case SOUTH:
+			return getDisSouth();
+		case WEST:
+			return getDisWest();
+		default:
+			return -1;
+			}
+		
+	}
+
+	private int getDisSouth() {
+		Coordinate currentPosition = new Coordinate(getPosition());
+		for(int i = 0; i <= Car.VIEW_SQUARE; i++){
+			MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y-i));
+			if(tile.getName().equals("Wall")){
+				return (i-1);
+			}
+		}
+		return -1;
+	}
+
+	private int getDisEast() {
+		Coordinate currentPosition = new Coordinate(getPosition());
+		for(int i = 0; i <= Car.VIEW_SQUARE; i++){
+			MapTile tile = currentView.get(new Coordinate(currentPosition.x+i, currentPosition.y));
+			if(tile.getName().equals("Wall")){
+				return (i-1);
+			}
+		}
+		return -1;
+	}
+
+	private int getDisWest() {
+		Coordinate currentPosition = new Coordinate(getPosition());
+		for(int i = 0; i <= Car.VIEW_SQUARE; i++){
+			MapTile tile = currentView.get(new Coordinate(currentPosition.x-i, currentPosition.y));
+			if(tile.getName().equals("Wall")){
+				return (i-1);
+			}
+		}
+		return -1;
+	}
+
+	private int getDisNorth() {
+		Coordinate currentPosition = new Coordinate(getPosition());
+		for(int i = 0; i <= Car.VIEW_SQUARE; i++){
+			MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y+i));
+			if(tile.getName().equals("Wall")){
+				return (i-1);
+			}
+		}
+		return -1;
+	}
+
+	
+
+	private void reactLeftTurn(float delta) {
+		if(!checkFollowingWall()){
+			
+			applyLeftTurn(delta);
+		}
+		else{
+			normTurnLeft = false;
+			isTurningLeft = false;
+		}
+		
+	}
+
+	
+	
+	
+	
+	private boolean checkFollowingWall() {
+		switch(getOrientation()){
+		case EAST:
+			return checkNorth();
+		case NORTH:
+			return checkWest();
+		case SOUTH:
+			return checkEast();
+		case WEST:
+			return checkSouth();
+		default:
+			return false;
+		}
+	}
+
+	
+	
+
+	private boolean checkWest() {
+		// Check tiles to my left
+				Coordinate currentPosition = new Coordinate(getPosition());
+				for(int i = 0; i <= wallSensitivity; i++){
+					MapTile tile = currentView.get(new Coordinate(currentPosition.x-i, currentPosition.y));
+					if(tile.getName().equals("Wall")){
+						return true;
+					}
+				}
+				return false;
+	}
+
+	private boolean checkSouth() {
+		// Check tiles to towards the top
+				Coordinate currentPosition = new Coordinate(getPosition());
+				for(int i = 0; i <= wallSensitivity; i++){
+					MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y-i));
+					if(tile.getName().equals("Wall")){
+						return true;
+					}
+				}
+				return false;
+	}
+
+	private boolean checkNorth() {
+		// Check tiles to towards the top
+				Coordinate currentPosition = new Coordinate(getPosition());
+				for(int i = 0; i <= wallSensitivity; i++){
+					MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y+i));
+					if(tile.getName().equals("Wall")){
+						return true;
+					}
+				}
+				return false;
+	}
+
+	private boolean checkEast() {
+		// Check tiles to my right
+				Coordinate currentPosition = new Coordinate(getPosition());
+				for(int i = 0; i <= wallSensitivity; i++){
+					MapTile tile = currentView.get(new Coordinate(currentPosition.x+i, currentPosition.y));
+					if(tile.getName().equals("Wall")){
+						return true;
+					}
+				}
+				return false;
+	}
+
+	private void applyLeftTurn(float delta) {
+		switch(getOrientation()){
+		case EAST:
+			if(!getOrientation().equals(WorldSpatial.Direction.NORTH)){
+				turnLeft(delta);
+			}
+			break;
+		case NORTH:
+			if(!getOrientation().equals(WorldSpatial.Direction.WEST)){
+				turnLeft(delta);
+			}
+			break;
+		case SOUTH:
+			if(!getOrientation().equals(WorldSpatial.Direction.EAST)){
+				turnLeft(delta);
+			}
+			break;
+		case WEST:
+			if(!getOrientation().equals(WorldSpatial.Direction.SOUTH)){
+				turnLeft(delta);
+			}
+			break;
+		default:
+			break;
+		
+		}
+		
+	}
+
+	
+
+	private void applyRightTurn(float delta) {
+		switch(getOrientation()){
+		case EAST:
+			if(!getOrientation().equals(WorldSpatial.Direction.SOUTH)){
+				turnRight(delta);
+			}
+			break;
+		case NORTH:
+			if(!getOrientation().equals(WorldSpatial.Direction.EAST)){
+				turnRight(delta);
+			}
+			break;
+		case SOUTH:
+			if(!getOrientation().equals(WorldSpatial.Direction.WEST)){
+				turnRight(delta);
+				System.out.println("inner: turn right");
+			}
+			break;
+		case WEST:
+			if(!getOrientation().equals(WorldSpatial.Direction.NORTH)){
+				turnRight(delta);
+			}
+			break;
+		default:
+			break;
+		
+		}		
+	}
+
+	private void readjust(float delta) {
 		if(lastTurnDirection != null){
 			if(!isTurningRight && lastTurnDirection.equals(WorldSpatial.RelativeDirection.RIGHT)){
-				adjustRight(getOrientation(),delta);
+				adjustRight(delta);
 			}
 			else if(!isTurningLeft && lastTurnDirection.equals(WorldSpatial.RelativeDirection.LEFT)){
-				adjustLeft(getOrientation(),delta);
+				adjustLeft(delta);
 			}
 		}
 		
 	}
-	
-	/**
-	 * Try to orient myself to a degree that I was supposed to be at if I am
-	 * misaligned.
-	 */
-	private void adjustLeft(WorldSpatial.Direction orientation, float delta) {
-		
-		switch(orientation){
+
+	//**
+	private void adjustLeft(float delta) {
+		switch(getOrientation()){
 		case EAST:
 			if(getAngle() > WorldSpatial.EAST_DEGREE_MIN+EAST_THRESHOLD){
+				System.out.println("adjust turn right");
 				turnRight(delta);
 			}
 			break;
@@ -212,8 +555,9 @@ public class MyAIController extends CarController{
 		
 	}
 
-	private void adjustRight(WorldSpatial.Direction orientation, float delta) {
-		switch(orientation){
+	//**
+	private void adjustRight(float delta) {
+		switch(getOrientation()){
 		case EAST:
 			if(getAngle() > WorldSpatial.SOUTH_DEGREE && getAngle() < WorldSpatial.EAST_DEGREE_MAX){
 				turnLeft(delta);
@@ -240,236 +584,7 @@ public class MyAIController extends CarController{
 		}
 		
 	}
-	
-	/**
-	 * Checks whether the car's state has changed or not, stops turning if it
-	 *  already has.
-	 */
-	private void checkStateChange() {
 
-		if(previousState == null){
-			previousState = getOrientation();
-		}
-		else{
-			//System.out.println("checkStateChange pre: "+previousState);
-			//System.out.println("checkStateChange currentorientation: "+getOrientation());
-			if(previousState != getOrientation()){
-				if(isTurningLeft){
-					isTurningLeft = false;
-				}
-				if(isTurningRight){
-					isTurningRight = false;
-				}
-				previousState = getOrientation();
-			}
-		}
-	}
-	
-	/**
-	 * Turn the car counter clock wise (think of a compass going counter clock-wise)
-	 */
-	private void applyLeftTurn(WorldSpatial.Direction orientation, float delta) {
-		switch(orientation){
-		case EAST:
-			if(!getOrientation().equals(WorldSpatial.Direction.NORTH)){
-				turnLeft(delta);
-			}
-			break;
-		case NORTH:
-			if(!getOrientation().equals(WorldSpatial.Direction.WEST)){
-				turnLeft(delta);
-			}
-			break;
-		case SOUTH:
-			if(!getOrientation().equals(WorldSpatial.Direction.EAST)){
-				turnLeft(delta);
-			}
-			break;
-		case WEST:
-			if(!getOrientation().equals(WorldSpatial.Direction.SOUTH)){
-				turnLeft(delta);
-			}
-			break;
-		default:
-			break;
-		
-		}
-		
-	}
-	
-	/**
-	 * Turn the car clock wise (think of a compass going clock-wise)
-	 */
-	private void applyRightTurn(WorldSpatial.Direction orientation, float delta) {
-		switch(orientation){
-		case EAST:
-			if(!getOrientation().equals(WorldSpatial.Direction.SOUTH)){
-				turnRight(delta);
-			}
-			break;
-		case NORTH:
-			if(!getOrientation().equals(WorldSpatial.Direction.EAST)){
-				turnRight(delta);
-			}
-			break;
-		case SOUTH:
-			if(!getOrientation().equals(WorldSpatial.Direction.WEST)){
-				turnRight(delta);
-			}
-			break;
-		case WEST:
-			if(!getOrientation().equals(WorldSpatial.Direction.NORTH)){
-				turnRight(delta);
-			}
-			break;
-		default:
-			break;
-		
-		}
-		
-	}
-
-	/**
-	 * Check if you have a wall in front of you!
-	 * @param orientation the orientation we are in based on WorldSpatial
-	 * @param currentView what the car can currently see
-	 * @return
-	 */
-	private boolean checkWallAhead(WorldSpatial.Direction orientation, HashMap<Coordinate, MapTile> currentView, int sensitivity){
-		switch(orientation){
-		case EAST:
-			return checkEast(currentView, sensitivity);
-		case NORTH:
-			return checkNorth(currentView, sensitivity);
-		case SOUTH:
-			return checkSouth(currentView, sensitivity);
-		case WEST:
-			return checkWest(currentView, sensitivity);
-		default:
-			return false;
-		
-		}
-	}
-	
-	/**
-	 * Check if the wall is on your left hand side given your orientation
-	 * @param orientation
-	 * @param currentView
-	 * @return
-	 */
-	private boolean checkFollowingWall(WorldSpatial.Direction orientation, HashMap<Coordinate, MapTile> currentView, int sensitivity) {
-		
-		switch(orientation){
-		case EAST:
-			return checkNorth(currentView, sensitivity);
-		case NORTH:
-			return checkWest(currentView, sensitivity);
-		case SOUTH:
-			return checkEast(currentView, sensitivity);
-		case WEST:
-			return checkSouth(currentView, sensitivity);
-		default:
-			return false;
-		}
-		
-	}
-	
-	private boolean checkWallRight(WorldSpatial.Direction orientation,HashMap<Coordinate, MapTile> currentView, int sensitivity) {
-		
-		switch(orientation){
-		case EAST:
-			return checkSouth(currentView, sensitivity);
-		case NORTH:
-			return checkEast(currentView, sensitivity);
-		case SOUTH:
-			return checkWest(currentView, sensitivity);
-		case WEST:
-			return checkNorth(currentView, sensitivity);
-		default:
-			return false;
-		}
-	
-	}
-	
-	private boolean checkWallBehind(WorldSpatial.Direction orientation,HashMap<Coordinate, MapTile> currentView, int sensitivity) {
-		
-		switch(orientation){
-		case EAST:
-			return checkSouth(currentView, sensitivity);
-		case NORTH:
-			return checkEast(currentView, sensitivity);
-		case SOUTH:
-			return checkWest(currentView, sensitivity);
-		case WEST:
-			return checkSouth(currentView, sensitivity);
-		default:
-			return false;
-		}
-	
-	}
-
-	/**
-	 * Method below just iterates through the list and check in the correct coordinates.
-	 * i.e. Given your current position is 10,10
-	 * checkEast will check up to wallSensitivity amount of tiles to the right.
-	 * checkWest will check up to wallSensitivity amount of tiles to the left.
-	 * checkNorth will check up to wallSensitivity amount of tiles to the top.
-	 * checkSouth will check up to wallSensitivity amount of tiles below.
-	 */
-	public boolean checkEast(HashMap<Coordinate, MapTile> currentView, int sensitivity){
-		// Check tiles to my right
-		Coordinate currentPosition = new Coordinate(getPosition());
-		for(int i = 0; i <= sensitivity; i++){
-			MapTile tile = currentView.get(new Coordinate(currentPosition.x+i, currentPosition.y));
-			if(tile.getName().equals("Wall")){
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	public boolean checkWest(HashMap<Coordinate,MapTile> currentView, int sensitivity){
-		// Check tiles to my left
-		Coordinate currentPosition = new Coordinate(getPosition());
-		for(int i = 0; i <= sensitivity; i++){
-			MapTile tile = currentView.get(new Coordinate(currentPosition.x-i, currentPosition.y));
-			if(tile.getName().equals("Wall")){
-				return true;
-			}
-		}
-		return false;
-	}
-	
-
-	/**
-	 * Check if there is a wall within 2 units tiles on the north
-	 * @param currentView: HashMap<Coordinate,MapTile>
-	 * @return true if there is a wall
-	 */
-	public boolean checkNorth(HashMap<Coordinate,MapTile> currentView, int sensitivity){
-		// Check tiles to towards the top
-		Coordinate currentPosition = new Coordinate(getPosition());
-		for(int i = 0; i <= sensitivity; i++){
-			MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y+i));
-			if(tile.getName().equals("Wall")){
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	public boolean checkSouth(HashMap<Coordinate,MapTile> currentView, int sensitivity){
-		// Check tiles towards the bottom
-		Coordinate currentPosition = new Coordinate(getPosition());
-		for(int i = 0; i <= sensitivity; i++){
-			MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y-i));
-			if(tile.getName().equals("Wall")){
-				return true;
-			}
-		}
-		return false;
-	}
-	
 	
 	
 
