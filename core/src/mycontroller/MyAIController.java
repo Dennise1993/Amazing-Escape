@@ -114,7 +114,7 @@ public class MyAIController extends CarController{
 				}else if(deadEnd == WorldDeadEnd.UTURN){
 					setRightTurn();
 					System.out.println("uturn");
-				}else if(getDistanceAheadWall()!=-1&&getDistanceAheadWall()+1<=wallSensitivity&&getDisRightWall()==-1){
+				}else if(deadEnd ==WorldDeadEnd.AHEADWALL){
 					System.out.println("no dead end but wall ahead");
 					setRightTurn();
 				}
@@ -137,32 +137,52 @@ public class MyAIController extends CarController{
 			applyReverseAcceleration();
 		}else{
 			//applyBrake();
-			//setFrontRoadAsWall();
+			setFrontRoadAsWall();
 			reverse = false;
 		}
 		
 	}
 
-//	private void setFrontRoadAsWall() {
-//		switch(getOrientation()){
-//		case EAST:
-//			setEastRoadAsWall();
-//			break;
-//		case NORTH:
-//			setNorthRoadAsWall();
-//			break;
-//		case SOUTH:
-//			setSouthRoadAsWall();
-//			break;
-//		case WEST:
-//			setWestRoadAsWall();
-//			break;
-//		default:
-//			break;
-//		
-//		}
-//		
-//	}
+	private void setFrontRoadAsWall() {
+		switch(getOrientation()){
+		case EAST:
+			setEastRoadAsWall();
+			break;
+		case NORTH:
+			setNorthRoadAsWall();
+			break;
+		case SOUTH:
+			setSouthRoadAsWall();
+			break;
+		case WEST:
+			setWestRoadAsWall();
+			break;
+		default:
+			break;
+		
+		}
+		
+	}
+
+	private void setWestRoadAsWall() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	private void setSouthRoadAsWall() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	private void setNorthRoadAsWall() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	private void setEastRoadAsWall() {
+		// TODO Auto-generated method stub
+		
+	}
 
 	private boolean checkRightRoad() {
 		switch(getOrientation()){
@@ -413,12 +433,14 @@ public class MyAIController extends CarController{
 		int disAheadWall = getDistanceAheadWall();
 		int disRightWall = getDisRightWall();
 		
-			if(disAheadWall!=-1 && disRightWall!=-1 && disAheadWall<=aheadSensitivity && disRightWall==rightThreeSen){
+			if(disAheadWall!=-1 && disRightWall!=-1 && disAheadWall<=aheadSensitivity && disRightWall==rightThreeSen){/*rightThreeSen*/
 				return WorldDeadEnd.THREEPOINT;
-			}else if(disAheadWall!=-1 && disRightWall!=-1&&disAheadWall<=aheadSensitivity && disRightWall==rightReverseSen){
+			}else if(disAheadWall!=-1 && disRightWall!=-1&&disAheadWall<=aheadSensitivity && disRightWall==rightReverseSen){/*rightReverseSen*/
 				return WorldDeadEnd.REVERSEOUT;
-			}else if(disAheadWall!=-1 && disRightWall!=-1&&disAheadWall<=aheadSensitivity && disRightWall==rightThreeSen+1){
+			}else if(disAheadWall!=-1 && disRightWall!=-1&&disAheadWall<=aheadSensitivity && disRightWall==rightThreeSen+1){/*rightThreeSen+1*/
 				return WorldDeadEnd.UTURN;
+			}else if(disAheadWall!=-1 && disAheadWall<=aheadSensitivity){
+				return WorldDeadEnd.AHEADWALL;
 			}
 		
 		
