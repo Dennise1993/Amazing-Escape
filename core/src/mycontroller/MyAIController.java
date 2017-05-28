@@ -69,6 +69,9 @@ public class MyAIController extends CarController{
 	private final float CAR_SPEED = 3;
 	private int EAST_THRESHOLD = 3;
 	
+	//The minimum angle a car could turn in three-point-turn mode
+	private float minAngle = 30;
+	
 	//**
 	float previousAngle;
 	// to determine whether the controller has set the road as wall in reverse
@@ -89,7 +92,7 @@ public class MyAIController extends CarController{
 		currentView = getView();
 		currentView.putAll(regardWallTileMap);
 		checkStateChange();
-		System.out.println("current Orientation: "+getOrientation());
+		//System.out.println("current Orientation: "+getOrientation());
 		 
 		isStickingWall = checkFollowingWall();
 		if(isFollowingWall) {
@@ -99,21 +102,20 @@ public class MyAIController extends CarController{
 					applyForwardAcceleration();
 				}
 				applyRightTurn(delta); //**reactRightTurn
-				System.out.println("turn right");
+				//System.out.println("turn right");
 			}
 			else if(normTurnLeft){
-
 				// Apply the left turn if you are not currently near a wall.
 				reactLeftTurn(delta);	
-				System.out.println("turn left");
+				//System.out.println("turn left");
 			}else if(threePointTurn){
 				reactThreePointTurn(delta, previousAngle);
-				System.out.println("3point");
+				//System.out.println("3point");
 			}else if(reverse){
 				reactReverse(delta);
 			}
 			else if(isStickingWall){
-				System.out.println("follow wall");
+				//System.out.println("follow wall");
 				// Maintain some velocity
 				if(getVelocity() < CAR_SPEED){
 					applyForwardAcceleration();
@@ -123,6 +125,7 @@ public class MyAIController extends CarController{
 				
 				if(deadEnd == WorldDeadEnd.THREEPOINT){
 					previousAngle = getAngle();
+					//if it has run a 3-point-turn, then just regrads car as turning right
 					if(!checkHasTurn()){
 						setThreePointTurn();
 					}else{
@@ -142,10 +145,10 @@ public class MyAIController extends CarController{
 			// This indicates that I can do a left turn if I am not turning right
 			else{
 				setLeftTurn();
-				System.out.println("no wall to follow");
+				//System.out.println("no wall to follow");
 			}
 		}else{
-			findWallToFollow(delta);//**
+			findWallToFollow(delta);
 			
 		}
 		
@@ -165,14 +168,14 @@ public class MyAIController extends CarController{
 		// as long as there are walls on the right side of car, keep reversing
 		// until the car approaches the behind wall(s)
 		if(!checkRightRoad()&&!isBehindWallApproaching()){
-			System.out.println("react--reverse---reversing");
+			//System.out.println("react--reverse---reversing");
 			applyReverseAcceleration();
 		}
 		//if there are enough space for the right turn,
 		//jump out of reverse mode
 		//and act like routine drive
 		else if(checkRightRoad()){
-			System.out.println("react--reverse---stop reversing");
+			//System.out.println("react--reverse---stop reversing");
 
 			if(getVelocity()<=0.01f){//EPSILON=0.01f
 				resetReverseStatus();
@@ -327,7 +330,7 @@ public class MyAIController extends CarController{
 	}
 
 	private void setEastRoadAsWall(int delta) {
-		System.out.println("==================set east road");
+		//System.out.println("==================set east road");
 		Coordinate currentPosition = new Coordinate(getPosition());
 		//make the tile and the right tile regard as a wall by storing in our own map
 		regardWallTileMap.put(new Coordinate(currentPosition.x+delta, currentPosition.y), new MapTile("Wall"));
@@ -430,17 +433,22 @@ public class MyAIController extends CarController{
 		
 	}
 
+	/**
+	 * check the three-point-turn has already been executed once
+	 * 
+	 * 
+	 * @return true if the current angle the car has is different with the previous angle
+	 */
 	private boolean checkHasTurn() {
 		switch(getOrientation()){
 		case EAST:
-			System.out.println("currentangle: "+getAngle());
-			return (getAngle()>30 );
+			return (getAngle()>minAngle );
 		case NORTH:
-			return (WorldSpatial.NORTH_DEGREE-previousAngle>30);
+			return (WorldSpatial.NORTH_DEGREE-previousAngle>minAngle);
 		case SOUTH:
-			return (WorldSpatial.SOUTH_DEGREE-previousAngle>30);
+			return (WorldSpatial.SOUTH_DEGREE-previousAngle>minAngle);
 		case WEST:
-			return (WorldSpatial.WEST_DEGREE-previousAngle>30);
+			return (WorldSpatial.WEST_DEGREE-previousAngle>minAngle);
 		default:
 			return false;
 		}
@@ -505,7 +513,7 @@ public class MyAIController extends CarController{
 
 				}
 				previousState = getOrientation();
-				System.out.println("state: "+previousState);
+				//System.out.println("state: "+previousState);
 			}
 		}
 		
@@ -521,8 +529,8 @@ public class MyAIController extends CarController{
 		int disRightWall = getDisRightWall();
 		float currentAngle = getAngle();
 		
-		System.out.println("react: diff: "+Math.abs(currentAngle-previousAngle));
-		System.out.println("react: ori: "+getOrientation());
+		//System.out.println("react: diff: "+Math.abs(currentAngle-previousAngle));
+		//System.out.println("react: ori: "+getOrientation());
 		
 		if(getOrientation() == WorldSpatial.Direction.EAST && currentAngle!=0){
 			currentAngle = 360 - currentAngle;
@@ -532,20 +540,20 @@ public class MyAIController extends CarController{
 			lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
 			isTurningRight = true;
 			applyRightTurn(delta);
-			System.out.println("3-point-right");
+			//System.out.println("3-point-right");
 		}else{
 			
 			if(disAheadWall<=1 && !isReversing){
 				isReversing = true;
 				applyBrake();
-				System.out.println("3-point-start-reverse");
+				//System.out.println("3-point-start-reverse");
 			}else if(disRightWall>=2 && hasReversed){
 				isReversing = false;
 				threePointTurn = false;
 				hasReversed = false;
 				
 				applyBrake();
-				System.out.println("stop reverse");
+				//System.out.println("stop reverse");
 			}else if(isReversing){
 				hasReversed = true;
 				
@@ -553,11 +561,11 @@ public class MyAIController extends CarController{
 				if(checkisAccelerateInRightSide()){
 					applyBrake();
 					applyReverseAcceleration();
-					System.out.println("3-point-reversing-brake");
+					//System.out.println("3-point-reversing-brake");
 				}
 				else{
 					applyReverseAcceleration();
-					System.out.println("3-point-reversing-reverse");
+					//System.out.println("3-point-reversing-reverse");
 				}
 				
 
@@ -627,11 +635,11 @@ public class MyAIController extends CarController{
 		int disAheadWall = getDistanceAheadWall();
 		int disRightWall = getDisRightWall();
 		
-			if(disAheadWall!=-1 && disRightWall!=-1 && disAheadWall<=aheadSensitivity && disRightWall==rightThreeSen){/*rightThreeSen*/
+			if(disAheadWall!=-1 && disRightWall!=-1 && disAheadWall<=aheadSensitivity && disRightWall==rightThreeSen){
 				return WorldDeadEnd.THREEPOINT;
-			}else if(disAheadWall!=-1 && disRightWall!=-1&&disAheadWall<=aheadSensitivity && disRightWall==rightReverseSen){/*rightReverseSen*/
+			}else if(disAheadWall!=-1 && disRightWall!=-1&&disAheadWall<=aheadSensitivity && disRightWall==rightReverseSen){
 				return WorldDeadEnd.REVERSEOUT;
-			}else if(disAheadWall!=-1 && disRightWall!=-1&&disAheadWall<=aheadSensitivity && disRightWall==rightThreeSen+1){/*rightThreeSen+1*/
+			}else if(disAheadWall!=-1 && disRightWall!=-1&&disAheadWall<=aheadSensitivity && disRightWall==rightThreeSen+1){
 				return WorldDeadEnd.UTURN;
 			}else if(disAheadWall!=-1 && disAheadWall<=aheadSensitivity){
 				return WorldDeadEnd.AHEADWALL;
@@ -1009,7 +1017,7 @@ public class MyAIController extends CarController{
 		
 	}
 
-	//**
+	
 	private void adjustLeft(float delta) {
 		switch(getOrientation()){
 		case EAST:
@@ -1040,7 +1048,7 @@ public class MyAIController extends CarController{
 		
 	}
 
-	//**
+
 	private void adjustRight(float delta) {
 		switch(getOrientation()){
 		case EAST:
