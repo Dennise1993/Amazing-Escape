@@ -23,7 +23,10 @@ public class MyAIController extends CarController{
 	private int wallSensitivity = 2;
 	private int aheadSensitivity = 1;
 	private int rightThreeSen = 2; //**
+	
 	private int rightReverseSen = 1; //**
+	private int rightWallSen = 2;
+	
 	private int threeAheadSen = 1; //**
 	private int threeLeftSen = 1;
 	private int aheadRoadWallSen = 1;
@@ -32,7 +35,7 @@ public class MyAIController extends CarController{
 	private boolean isFollowingWall = false;
 	private boolean isStickingWall = false;
 	private boolean isWallRight = false;
-	private boolean isWallRightTwice = false;
+	private boolean noWallRightTwice = false; //**
 	
 	//**
 	private boolean normTurnLeft = false;
@@ -71,13 +74,10 @@ public class MyAIController extends CarController{
 		if(isFollowingWall) {
 			readjust(delta);
 			if(normTurnRight){	
-				//readjust(delta);
 				applyRightTurn(delta); //**reactRightTurn
-				//applyForwardAcceleration();
 				System.out.println("turn right");
 			}
 			else if(normTurnLeft){
-				//readjust(delta);
 				// Apply the left turn if you are not currently near a wall.
 				reactLeftTurn(delta);	
 				System.out.println("turn left");
@@ -85,7 +85,7 @@ public class MyAIController extends CarController{
 				reactThreePointTurn(delta, previousAngle);
 				System.out.println("3point");
 			}else if(reverse){
-				//reactReverse(delta);
+				reactReverse(delta);
 			}
 			else if(isStickingWall){
 				System.out.println("follow wall");
@@ -104,7 +104,7 @@ public class MyAIController extends CarController{
 						normTurnRight = true;
 					}
 				}else if(deadEnd == WorldDeadEnd.REVERSEOUT){
-					//setReverseTurn();
+					setReverseTurn();
 					System.out.println("reverse");
 				}else if(deadEnd == WorldDeadEnd.UTURN){
 					setRightTurn();
@@ -126,6 +126,107 @@ public class MyAIController extends CarController{
 		
 	}
 	
+	private void reactReverse(float delta) {
+		// as long as there are walls on the right side of car, keep reversing
+		if(checkRightRoad()){
+			applyReverseAcceleration();
+		}else{
+			//applyBrake();
+			//setFrontRoadAsWall();
+			reverse = false;
+		}
+		
+	}
+
+//	private void setFrontRoadAsWall() {
+//		switch(getOrientation()){
+//		case EAST:
+//			setEastRoadAsWall();
+//			break;
+//		case NORTH:
+//			setNorthRoadAsWall();
+//			break;
+//		case SOUTH:
+//			setSouthRoadAsWall();
+//			break;
+//		case WEST:
+//			setWestRoadAsWall();
+//			break;
+//		default:
+//			break;
+//		
+//		}
+//		
+//	}
+
+	private boolean checkRightRoad() {
+		switch(getOrientation()){
+		case EAST:
+			return checkSouthRoad();
+		case NORTH:
+			return checkEastRoad();
+		case SOUTH:
+			return checkWestRoad();
+		case WEST:
+			return checkNorthRoad();
+		default:
+			return false;
+		}
+	}
+
+	private boolean checkNorthRoad() {
+		Coordinate currentPosition = new Coordinate(getPosition());
+		for(int i = 0; i <= Car.VIEW_SQUARE; i++){
+			MapTile tile1 = currentView.get(new Coordinate(currentPosition.x, currentPosition.y+i));
+			MapTile tile2 = currentView.get(new Coordinate(currentPosition.x-1, currentPosition.y+i));
+			if(tile1.getName().equals("Wall") || tile2.getName().equals("Wall")){
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private boolean checkWestRoad() {
+		Coordinate currentPosition = new Coordinate(getPosition());
+		for(int i = 0; i <= Car.VIEW_SQUARE; i++){
+			MapTile tile1 = currentView.get(new Coordinate(currentPosition.x-i, currentPosition.y));
+			MapTile tile2 = currentView.get(new Coordinate(currentPosition.x-i, currentPosition.y-1));
+			if(tile1.getName().equals("Wall") || tile2.getName().equals("Wall")){
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private boolean checkEastRoad() {
+		Coordinate currentPosition = new Coordinate(getPosition());
+		for(int i = 0; i <= Car.VIEW_SQUARE; i++){
+			MapTile tile1 = currentView.get(new Coordinate(currentPosition.x+i, currentPosition.y));
+			MapTile tile2 = currentView.get(new Coordinate(currentPosition.x+i, currentPosition.y+1));
+			if(tile1.getName().equals("Wall") || tile2.getName().equals("Wall")){
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private boolean checkSouthRoad() {
+		Coordinate currentPosition = new Coordinate(getPosition());
+		for(int i = 0; i <= Car.VIEW_SQUARE; i++){
+			MapTile tile1 = currentView.get(new Coordinate(currentPosition.x, currentPosition.y-i));
+			MapTile tile2 = currentView.get(new Coordinate(currentPosition.x+1, currentPosition.y-i));
+			if(tile1.getName().equals("Wall") || tile2.getName().equals("Wall")){
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private void setReverseTurn() {
+		reverse = true;
+		
+	}
+
 	private boolean checkHasTurn() {
 		switch(getOrientation()){
 		case EAST:
@@ -270,7 +371,7 @@ public class MyAIController extends CarController{
 				return WorldDeadEnd.THREEPOINT;
 			}else if(disAheadWall!=-1 && disRightWall!=-1&&disAheadWall<=aheadSensitivity && disRightWall==rightReverseSen){
 				return WorldDeadEnd.REVERSEOUT;
-			}else if(disAheadWall!=-1 && disRightWall!=-1&&disAheadWall<=aheadSensitivity && disRightWall>rightThreeSen){
+			}else if(disAheadWall!=-1 && disRightWall!=-1&&disAheadWall<=aheadSensitivity && disRightWall==rightThreeSen+1){
 				return WorldDeadEnd.UTURN;
 			}
 		
@@ -376,6 +477,7 @@ public class MyAIController extends CarController{
 			applyLeftTurn(delta);
 		}
 		else{
+			
 			normTurnLeft = false;
 			isTurningLeft = false;
 		}
@@ -519,6 +621,7 @@ public class MyAIController extends CarController{
 			}
 			else if(!isTurningLeft && lastTurnDirection.equals(WorldSpatial.RelativeDirection.LEFT)){
 				adjustLeft(delta);
+				System.out.println("adjust left");
 			}
 		}
 		
@@ -529,7 +632,6 @@ public class MyAIController extends CarController{
 		switch(getOrientation()){
 		case EAST:
 			if(getAngle() > WorldSpatial.EAST_DEGREE_MIN+EAST_THRESHOLD){
-				System.out.println("adjust turn right");
 				turnRight(delta);
 			}
 			break;
@@ -540,6 +642,7 @@ public class MyAIController extends CarController{
 			break;
 		case SOUTH:
 			if(getAngle() > WorldSpatial.SOUTH_DEGREE){
+				
 				turnRight(delta);
 			}
 			break;

@@ -50,8 +50,8 @@ public class Simulation extends ApplicationAdapter implements InputProcessor {
 		// map = new TmxMapLoader().load("easy-map-traps.tmx");
 		// map = new TmxMapLoader().load("lecture-preview.tmx");
 		// map = new TmxMapLoader().load("lecture-preview2.tmx");
-		 map = new TmxMapLoader().load("points-map4.tmx");
-		// map = new TmxMapLoader().load("general-map2.tmx");
+		// map = new TmxMapLoader().load("points-map5.tmx");
+		 map = new TmxMapLoader().load("general-map2.tmx");
 		
 		// Create the world
 		world = new World(map);
