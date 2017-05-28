@@ -166,6 +166,7 @@ public class Car extends Sprite{
     
 	public void reduceHealth(float damage) {
 		health -= damage;
+		System.out.println("Reduct Health by: "+damage+ " Remain Health: "+ health);
 	}
 	
 	public void applyForwardAcceleration(){
