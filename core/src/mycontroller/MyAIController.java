@@ -3,12 +3,10 @@ package mycontroller;
 import java.util.HashMap;
 
 import controller.CarController;
-import sun.font.TrueTypeFont;
 import tiles.GrassTrap;
 import tiles.LavaTrap;
 import tiles.MapTile;
 import tiles.MudTrap;
-import tiles.TrapTile;
 import utilities.Coordinate;
 import world.Car;
 import world.WorldSpatial;
@@ -18,39 +16,51 @@ import world.WorldSpatial.RelativeDirection;
 
 
 public class MyAIController extends CarController{
+	//DeadEnd Types
 	public enum WorldDeadEnd {
 		THREEPOINT, REVERSEOUT, UTURN, AHEADWALL
 	}
+	// Shows the last turn direction the car takes.
 	private WorldSpatial.RelativeDirection lastTurnDirection = null;
+	//Map of HashMap read from original map
 	HashMap<Coordinate, MapTile> currentView = null;
+	//Our own map, which is used for set new walls
 	HashMap<Coordinate, MapTile> regardWallTileMap = new HashMap<Coordinate,MapTile>();
+	//Keeps track of the previous state
 	private WorldSpatial.Direction previousState = null;
 	
-	
+	// How many minimum units the wall is away from the player.
 	private int wallSensitivity = 2;
+	
+	//This is used to check whether there is walls in front of car
+	//How many tiles are between car and ahead walls
 	private int aheadSensitivity = 1;
-	private int rightThreeSen = 2; //**
 	
+	//This is used to decide if the type of dead end is 3-point-turn
+	//The distacne between car and the right side of the wall
+	private int rightThreeSen = 2; 
+	
+	//This is used to decide if the type of dead end is reverse-out
+	//The distacne between car and the right side of the wall
 	private int rightReverseSen = 1; //**
-	private int rightWallSen = 2;
-	
-	private int threeAheadSen = 1; //**
-	private int threeLeftSen = 1;
-	private int aheadRoadWallSen = 1;
-	private int parraSensitivity = 1;
-	
+
+	// This is initialized when the car sticks to a wall.
 	private boolean isFollowingWall = false;
-	private boolean isStickingWall = false;
-	private boolean isWallRight = false;
-	private boolean noWallRightTwice = false; //**
 	
-	//**
+	//After the car sticks to a wall, this is used to check 
+	// if the car keeps to follow a wall
+	private boolean isStickingWall = false;
+
+	
+	//The below four variables of boolean represent the 
+	//responding actions of car
 	private boolean normTurnLeft = false;
 	private boolean normTurnRight = false;
 	private boolean threePointTurn = false;
 	private boolean reverse = false;
 	
-	
+	//The below four variables of boolean represent the 
+	//current movement of car
 	private boolean isTurningLeft = false;
 	private boolean isTurningRight = false;
 	private boolean isReversing = false;
