@@ -153,7 +153,10 @@ public class MyAIController extends CarController{
 		}
 		
 	}
-	
+	/**
+	 * Actual update function in 3-point-turn
+	 * @param delta
+	 */
 	private void reactReverse(float delta) {
 		// close the dead end zone by regard these zone as wall
 		// left or right when at least one side does not detect wall
@@ -202,17 +205,27 @@ public class MyAIController extends CarController{
 
 		
 	}
-
+	/**
+	 * set the alreadSetWallFlag as true;
+	 * ONLY USE THIS FUNCTION TO SET THIS FLAG!
+	 */
 	private void setAlreadSetWallFlag() {
 		this.alreadSetWallFlag = true;
 		
 	}
-
+	/**
+	 * reset the reverse status as well as alreadSetWallFlag;
+	 * ONLY USE THIS FUNCTION TO RESET REVERSE STATUS!
+	 */
 	private void resetReverseStatus() {
 		alreadSetWallFlag = false;
 		reverse = false;
 	}
 
+	/**
+	 * check if the back of the car is near a wall in range of wallSensitivity
+	 * @return true if it is approaching 
+	 */
 	private boolean isBehindWallApproaching() {
 		boolean isBehindWallApproach = false;
 		switch (getOrientation()) {
@@ -235,7 +248,10 @@ public class MyAIController extends CarController{
 			
 		return isBehindWallApproach;
 	}
-
+	/**
+	 * check if the left of the car is near a wall in range of wallSensitivity
+	 * @return true if it is approaching 
+	 */
 	private boolean isLeftWallApproaching() {
 		boolean isLeftWallApproach = false;
 		switch (getOrientation()) {
@@ -258,10 +274,10 @@ public class MyAIController extends CarController{
 			
 		return isLeftWallApproach;
 	}
-
-	
-	
-
+	/**
+	 * check if the right of the car is near a wall in range of wallSensitivity
+	 * @return true if it is approaching 
+	 */
 	private boolean isRightWallApproaching() {
 		boolean isRightWallApproach = false;
 		switch (getOrientation()) {
@@ -284,7 +300,10 @@ public class MyAIController extends CarController{
 			
 		return isRightWallApproach;
 	}
-
+	/**
+	 * set the front piles of tiles as wall and store in inner Hashmap
+	 * @param delta distance of tile (not the delta time!)
+	 */
 	private void setFrontRoadAsWall(int delta) {
 		switch(getOrientation()){
 		case EAST:
