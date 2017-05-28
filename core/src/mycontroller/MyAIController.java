@@ -22,6 +22,7 @@ public class MyAIController extends CarController{
 	
 	private WorldSpatial.RelativeDirection lastTurnDirection = null;
 	HashMap<Coordinate, MapTile> currentView = null;
+	HashMap<Coordinate, MapTile> regardWallTileMap = new HashMap<Coordinate,MapTile>();
 	private WorldSpatial.Direction previousState = null;
 	
 	
@@ -133,10 +134,12 @@ public class MyAIController extends CarController{
 	
 	private void reactReverse(float delta) {
 		// as long as there are walls on the right side of car, keep reversing
-		if(checkRightRoad()){
+		if(!checkRightRoad()){
+			System.out.println("react--reverse---reversing");
 			applyReverseAcceleration();
 		}else{
-			//applyBrake();
+			System.out.println("react--reverse---stop reversing");
+			applyBrake();
 			setFrontRoadAsWall();
 			reverse = false;
 		}
@@ -165,22 +168,41 @@ public class MyAIController extends CarController{
 	}
 
 	private void setWestRoadAsWall() {
-		// TODO Auto-generated method stub
+		Coordinate currentPosition = new Coordinate(getPosition());
+		MapTile tile1 = currentView.get(new Coordinate(currentPosition.x-2, currentPosition.y));
+		MapTile tile2 = currentView.get(new Coordinate(currentPosition.x-2, currentPosition.y-1));
+		tile1 = new MapTile("Wall");
+		tile2 = new MapTile("Wall");
 		
 	}
 
 	private void setSouthRoadAsWall() {
-		// TODO Auto-generated method stub
+		Coordinate currentPosition = new Coordinate(getPosition());
+		MapTile tile1 = currentView.get(new Coordinate(currentPosition.x, currentPosition.y-2));
+		MapTile tile2 = currentView.get(new Coordinate(currentPosition.x+1, currentPosition.y-2));
+		tile1 = new MapTile("Wall");
+		tile2 = new MapTile("Wall");
 		
 	}
 
 	private void setNorthRoadAsWall() {
-		// TODO Auto-generated method stub
+		Coordinate currentPosition = new Coordinate(getPosition());
+		MapTile tile1 = currentView.get(new Coordinate(currentPosition.x, currentPosition.y+2));
+		MapTile tile2 = currentView.get(new Coordinate(currentPosition.x+1, currentPosition.y+2));
+		tile1 = new MapTile("Wall");
+		tile2 = new MapTile("Wall");
 		
 	}
 
 	private void setEastRoadAsWall() {
-		// TODO Auto-generated method stub
+		System.out.println("==================set east road");
+		Coordinate currentPosition = new Coordinate(getPosition());
+		
+		
+		MapTile tile1 = currentView.get(new Coordinate(currentPosition.x+2, currentPosition.y));
+		MapTile tile2 = currentView.get(new Coordinate(currentPosition.x+2, currentPosition.y-1));
+		tile1 = new MapTile("Wall");
+		tile2 = new MapTile("Wall");
 		
 	}
 
