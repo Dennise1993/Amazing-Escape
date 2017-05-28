@@ -362,7 +362,7 @@ public class AIController extends CarController {
 		// Check tiles to towards the top
 				Coordinate currentPosition = new Coordinate(getPosition());
 				for(int i = 0; i <= wallSensitivity; i++){
-					MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y+i));
+					MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y-i));
 					if(tile.getName().equals("Wall")){
 						return true;
 					}
