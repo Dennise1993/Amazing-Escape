@@ -3,7 +3,12 @@ package mycontroller;
 import java.util.HashMap;
 
 import controller.CarController;
+import sun.font.TrueTypeFont;
+import tiles.GrassTrap;
+import tiles.LavaTrap;
 import tiles.MapTile;
+import tiles.MudTrap;
+import tiles.TrapTile;
 import utilities.Coordinate;
 import world.Car;
 import world.WorldDeadEnd;
@@ -339,8 +344,19 @@ public class MyAIController extends CarController{
 				System.out.println("stop reverse");
 			}else if(isReversing){
 				hasReversed = true;
-				applyReverseAcceleration();
-				System.out.println("3-point-reversing");
+				
+				//TODO: get the car's acc/reverse status and judge brake or reverse
+				if(checkisAccelerateInRightSide()){
+					applyBrake();
+					applyReverseAcceleration();
+					System.out.println("3-point-reversing-brake");
+				}
+				else{
+					applyReverseAcceleration();
+					System.out.println("3-point-reversing-reverse");
+				}
+				
+
 			}
 			
 			
@@ -349,6 +365,36 @@ public class MyAIController extends CarController{
 		
 	}
 
+	private boolean checkisAccelerate(){
+		switch(getOrientation()){
+		case EAST:
+			return (getRawVelocity().x>0);
+		case NORTH:
+			return (getRawVelocity().y>0);
+		case SOUTH:
+			return (getRawVelocity().y<0);
+		case WEST:
+			return (getRawVelocity().x<0);
+		default:
+			return false;
+		}
+	}
+	
+	private boolean checkisAccelerateInRightSide(){
+		switch(getOrientation()){
+		case NORTH:
+			return (getRawVelocity().x>0);
+		case WEST:
+			return (getRawVelocity().y>0);
+		case EAST:
+			return (getRawVelocity().y<0);
+		case SOUTH:
+			return (getRawVelocity().x<0);
+		default:
+			return false;
+		}
+	}
+	
 	
 
 	private void setThreePointTurn() {
@@ -429,7 +475,16 @@ public class MyAIController extends CarController{
 		Coordinate currentPosition = new Coordinate(getPosition());
 		for(int i = 0; i <= Car.VIEW_SQUARE; i++){
 			MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y-i));
+			//forwardTile can be null
+			MapTile forwardTile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y-(i+1)));
+//			boolean adsa=tile instanceof TrapTile;
 			if(tile.getName().equals("Wall")){
+				return (i-1);
+			}else if(checkIfGrassCannotPass(tile, forwardTile)){
+				return (i-1);
+			}else if(checkIfMudCannotPass(tile, forwardTile)){
+				return (i-1);
+			}else if(checkIfLavaCannotPass(tile,forwardTile)){
 				return (i-1);
 			}
 		}
@@ -440,7 +495,15 @@ public class MyAIController extends CarController{
 		Coordinate currentPosition = new Coordinate(getPosition());
 		for(int i = 0; i <= Car.VIEW_SQUARE; i++){
 			MapTile tile = currentView.get(new Coordinate(currentPosition.x+i, currentPosition.y));
+			//forwardTile can be null
+			MapTile forwardTile = currentView.get(new Coordinate(currentPosition.x+(i+1), currentPosition.y));
 			if(tile.getName().equals("Wall")){
+				return (i-1);
+			}else if(checkIfGrassCannotPass(tile, forwardTile)){
+				return (i-1);
+			}else if(checkIfMudCannotPass(tile, forwardTile)){
+				return (i-1);
+			}else if(checkIfLavaCannotPass(tile,forwardTile)){
 				return (i-1);
 			}
 		}
@@ -451,7 +514,15 @@ public class MyAIController extends CarController{
 		Coordinate currentPosition = new Coordinate(getPosition());
 		for(int i = 0; i <= Car.VIEW_SQUARE; i++){
 			MapTile tile = currentView.get(new Coordinate(currentPosition.x-i, currentPosition.y));
+			//forwardTile can be null
+			MapTile forwardTile = currentView.get(new Coordinate(currentPosition.x-(i+1), currentPosition.y));
 			if(tile.getName().equals("Wall")){
+				return (i-1);
+			}else if(checkIfGrassCannotPass(tile, forwardTile)){
+				return (i-1);
+			}else if(checkIfMudCannotPass(tile, forwardTile)){
+				return (i-1);
+			}else if(checkIfLavaCannotPass(tile,forwardTile)){
 				return (i-1);
 			}
 		}
@@ -462,13 +533,75 @@ public class MyAIController extends CarController{
 		Coordinate currentPosition = new Coordinate(getPosition());
 		for(int i = 0; i <= Car.VIEW_SQUARE; i++){
 			MapTile tile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y+i));
+			//forwardTile can be null
+			MapTile forwardTile = currentView.get(new Coordinate(currentPosition.x, currentPosition.y+(i+1)));
 			if(tile.getName().equals("Wall")){
+				return (i-1);
+			}else if(checkIfGrassCannotPass(tile, forwardTile)){
+				return (i-1);
+			}else if(checkIfMudCannotPass(tile, forwardTile)){
+				return (i-1);
+			}else if(checkIfLavaCannotPass(tile,forwardTile)){
 				return (i-1);
 			}
 		}
 		return -1;
 	}
-
+	/**
+	 * Check if the currentTile can regard as wall if it is a grass tile.
+	 * Rules are: if the tile is grass trap, and the forward tile is wall,
+	 * the grass trap will be regard as a wall since this trap cannot be simply passed
+	 * @param currentTile 
+	 * @param forwardTile
+	 * @return true if the currentTile cannot pass the grass test and should be regarded as wall
+	 * false if the currentTile can pass the test and it can be regard as road(if it is a grass) 
+	 * or currentTile is not a grass trap
+	 */ 
+	private boolean checkIfGrassCannotPass(MapTile currentTile, MapTile forwardTile){
+		if(currentTile instanceof GrassTrap){
+			if(null!= forwardTile&&forwardTile.getName().equals("Wall")){
+				return true;
+			}
+		}
+		return false;
+	}
+	/**
+	 * Check if the currentTile can regard as wall if it is a Mud tile.
+	 * Rules are: if the tile is a mud trap, and the forward tile is a mud trap,
+	 * the mud trap will be regard as a wall since this trap will cause game lose
+	 * @param currentTile 
+	 * @param forwardTile
+	 * @return true if the currentTile cannot pass the mud test and should be regarded as wall
+	 * false if the currentTile can pass the test and it can be regard as road(if it is a mud) 
+	 * or currentTile is not a mud trap
+	 */ 
+	private boolean checkIfMudCannotPass(MapTile currentTile, MapTile forwardTile){
+		if(currentTile instanceof MudTrap){
+			if(null!= forwardTile&&forwardTile instanceof MudTrap){
+				return true;
+			}
+		}
+		return false;
+	}
+	/**
+	 * Check if the currentTile can regard as wall if it is a lava tile.
+	 * Rules are: if the tile is lava trap, and the forward tile is a lava trap,
+	 * the grass trap will be regard as a wall since this trap will cause at least 40point of health eventually
+	 * We regard this kind of lava as bad path and keep it as wall
+	 * @param currentTile 
+	 * @param forwardTile
+	 * @return true if the currentTile cannot pass the lava test and should be regarded as wall
+	 * false if the current can pass the test and it can be regard as road(if it is a lava) 
+	 * or currentTile is not a lava trap
+	 */ 
+	private boolean checkIfLavaCannotPass(MapTile currentTile, MapTile forwardTile){
+		if(currentTile instanceof LavaTrap){
+			if(null!= forwardTile&&forwardTile instanceof LavaTrap){
+				return true;
+			}
+		}
+		return false;
+	}
 	
 
 	private void reactLeftTurn(float delta) {
