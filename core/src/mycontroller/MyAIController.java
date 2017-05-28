@@ -73,6 +73,7 @@ public class MyAIController extends CarController{
 
 	private void drive(float delta) {
 		currentView = getView();
+		currentView.putAll(regardWallTileMap);
 		checkStateChange();
 		System.out.println("current Orientation: "+getOrientation());
 		 
@@ -80,10 +81,14 @@ public class MyAIController extends CarController{
 		if(isFollowingWall) {
 			readjust(delta);
 			if(normTurnRight){	
+				if(getVelocity()<0.65*CAR_SPEED){
+					applyForwardAcceleration();
+				}
 				applyRightTurn(delta); //**reactRightTurn
 				System.out.println("turn right");
 			}
 			else if(normTurnLeft){
+
 				// Apply the left turn if you are not currently near a wall.
 				reactLeftTurn(delta);	
 				System.out.println("turn left");
@@ -139,9 +144,16 @@ public class MyAIController extends CarController{
 			applyReverseAcceleration();
 		}else{
 			System.out.println("react--reverse---stop reversing");
-			applyBrake();
-			setFrontRoadAsWall();
-			reverse = false;
+
+			if(getVelocity()<=0.01f){
+				setFrontRoadAsWall();
+				reverse = false;
+				applyForwardAcceleration();
+				setRightTurn();
+			}
+			else{
+				applyBrake();
+			}
 		}
 		
 	}
@@ -169,40 +181,36 @@ public class MyAIController extends CarController{
 
 	private void setWestRoadAsWall() {
 		Coordinate currentPosition = new Coordinate(getPosition());
-		MapTile tile1 = currentView.get(new Coordinate(currentPosition.x-2, currentPosition.y));
-		MapTile tile2 = currentView.get(new Coordinate(currentPosition.x-2, currentPosition.y-1));
-		tile1 = new MapTile("Wall");
-		tile2 = new MapTile("Wall");
+		regardWallTileMap.put(new Coordinate(currentPosition.x-2, currentPosition.y), new MapTile("Wall"));
+		regardWallTileMap.put(new Coordinate(currentPosition.x-2, currentPosition.y-1), new MapTile("Wall"));
+		regardWallTileMap.put(new Coordinate(currentPosition.x-2, currentPosition.y-2), new MapTile("Wall"));
 		
 	}
 
 	private void setSouthRoadAsWall() {
 		Coordinate currentPosition = new Coordinate(getPosition());
-		MapTile tile1 = currentView.get(new Coordinate(currentPosition.x, currentPosition.y-2));
-		MapTile tile2 = currentView.get(new Coordinate(currentPosition.x+1, currentPosition.y-2));
-		tile1 = new MapTile("Wall");
-		tile2 = new MapTile("Wall");
+		regardWallTileMap.put(new Coordinate(currentPosition.x, currentPosition.y-2), new MapTile("Wall"));
+		regardWallTileMap.put(new Coordinate(currentPosition.x+1, currentPosition.y-2), new MapTile("Wall"));
+		regardWallTileMap.put(new Coordinate(currentPosition.x+2, currentPosition.y-2), new MapTile("Wall"));
 		
 	}
 
 	private void setNorthRoadAsWall() {
 		Coordinate currentPosition = new Coordinate(getPosition());
-		MapTile tile1 = currentView.get(new Coordinate(currentPosition.x, currentPosition.y+2));
-		MapTile tile2 = currentView.get(new Coordinate(currentPosition.x+1, currentPosition.y+2));
-		tile1 = new MapTile("Wall");
-		tile2 = new MapTile("Wall");
-		
+		regardWallTileMap.put(new Coordinate(currentPosition.x, currentPosition.y+2), new MapTile("Wall"));
+		regardWallTileMap.put(new Coordinate(currentPosition.x+1, currentPosition.y+2), new MapTile("Wall"));
+		regardWallTileMap.put(new Coordinate(currentPosition.x+2, currentPosition.y+2), new MapTile("Wall"));
 	}
 
 	private void setEastRoadAsWall() {
 		System.out.println("==================set east road");
 		Coordinate currentPosition = new Coordinate(getPosition());
-		
-		
-		MapTile tile1 = currentView.get(new Coordinate(currentPosition.x+2, currentPosition.y));
-		MapTile tile2 = currentView.get(new Coordinate(currentPosition.x+2, currentPosition.y-1));
-		tile1 = new MapTile("Wall");
-		tile2 = new MapTile("Wall");
+		//make the tile and the right tile regard as a wall by storing in our own map
+		regardWallTileMap.put(new Coordinate(currentPosition.x+2, currentPosition.y), new MapTile("Wall"));
+		regardWallTileMap.put(new Coordinate(currentPosition.x+2, currentPosition.y-1), new MapTile("Wall"));
+		regardWallTileMap.put(new Coordinate(currentPosition.x+2, currentPosition.y-2), new MapTile("Wall"));
+
+
 		
 	}
 
@@ -344,7 +352,7 @@ public class MyAIController extends CarController{
 					isReversing = false;
 				}
 				if(reverse){
-					reverse = false;
+//					reverse = false;
 				}
 				previousState = getOrientation();
 				System.out.println("state: "+previousState);
@@ -650,7 +658,9 @@ public class MyAIController extends CarController{
 
 	private void reactLeftTurn(float delta) {
 		if(!checkFollowingWall()){
-			
+			if(getVelocity()<0.65*CAR_SPEED){
+				applyForwardAcceleration();
+			}
 			applyLeftTurn(delta);
 		}
 		else{
