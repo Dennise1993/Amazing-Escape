@@ -11,7 +11,6 @@ import tiles.MudTrap;
 import tiles.TrapTile;
 import utilities.Coordinate;
 import world.Car;
-import world.WorldDeadEnd;
 import world.WorldSpatial;
 import world.WorldSpatial.Direction;
 import world.WorldSpatial.RelativeDirection;
@@ -19,7 +18,9 @@ import world.WorldSpatial.RelativeDirection;
 
 
 public class MyAIController extends CarController{
-	
+	public enum WorldDeadEnd {
+		THREEPOINT, REVERSEOUT, UTURN, AHEADWALL
+	}
 	private WorldSpatial.RelativeDirection lastTurnDirection = null;
 	HashMap<Coordinate, MapTile> currentView = null;
 	HashMap<Coordinate, MapTile> regardWallTileMap = new HashMap<Coordinate,MapTile>();
