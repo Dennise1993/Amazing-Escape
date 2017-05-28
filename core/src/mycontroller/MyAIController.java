@@ -60,6 +60,9 @@ public class MyAIController extends CarController{
 	
 	//**
 	float previousAngle;
+	// to determine whether the controller has set the road as wall in reverse
+	private boolean alreadSetWallFlag = false;
+
 	
 	public MyAIController(Car car) {
 		super(car);
@@ -138,16 +141,30 @@ public class MyAIController extends CarController{
 	}
 	
 	private void reactReverse(float delta) {
+		// close the dead end zone by regard these zone as wall
+		// left or right when at least one side does not detect wall
+		if(!(isLeftWallApproaching()&&isRightWallApproaching())){
+			if(!alreadSetWallFlag){
+				setFrontRoadAsWall(1);//forward road one tile ahead
+				setAlreadSetWallFlag();
+			}
+
+		}
+		
 		// as long as there are walls on the right side of car, keep reversing
-		if(!checkRightRoad()){
+		// until the car approaches the behind wall(s)
+		if(!checkRightRoad()&&!isBehindWallApproaching()){
 			System.out.println("react--reverse---reversing");
 			applyReverseAcceleration();
-		}else{
+		}
+		//if there are enough space for the right turn,
+		//jump out of reverse mode
+		//and act like routine drive
+		else if(checkRightRoad()){
 			System.out.println("react--reverse---stop reversing");
 
-			if(getVelocity()<=0.01f){
-				setFrontRoadAsWall();
-				reverse = false;
+			if(getVelocity()<=0.01f){//EPSILON=0.01f
+				resetReverseStatus();
 				applyForwardAcceleration();
 				setRightTurn();
 			}
@@ -155,22 +172,118 @@ public class MyAIController extends CarController{
 				applyBrake();
 			}
 		}
+		//if the car is approaching the behind wall and 
+		//the right side still cannot offer enough space for turning
+		//turn left
+//		else if(isBehindWallApproaching()){
+//			if(getVelocity()<=0.01f){//EPSILON=0.01f
+//				resetReverseStatus();
+//				applyForwardAcceleration();
+//				setLeftTurn();
+//			}
+//			else{
+//				applyBrake();
+//			}
+//		}
+
 		
 	}
 
-	private void setFrontRoadAsWall() {
-		switch(getOrientation()){
+	private void setAlreadSetWallFlag() {
+		this.alreadSetWallFlag = true;
+		
+	}
+
+	private void resetReverseStatus() {
+		alreadSetWallFlag = false;
+		reverse = false;
+	}
+
+	private boolean isBehindWallApproaching() {
+		boolean isBehindWallApproach = false;
+		switch (getOrientation()) {
 		case EAST:
-			setEastRoadAsWall();
+			//judge west side becauase behind
+			isBehindWallApproach =  checkWest();
 			break;
 		case NORTH:
-			setNorthRoadAsWall();
+			isBehindWallApproach = checkSouth();
 			break;
 		case SOUTH:
-			setSouthRoadAsWall();
+			isBehindWallApproach = checkNorth();
 			break;
 		case WEST:
-			setWestRoadAsWall();
+			isBehindWallApproach = checkEast();
+			break;
+		default:
+			break;
+		}	
+			
+		return isBehindWallApproach;
+	}
+
+	private boolean isLeftWallApproaching() {
+		boolean isLeftWallApproach = false;
+		switch (getOrientation()) {
+		case EAST:
+			//judge north side(left side) becauase behind
+			isLeftWallApproach =  checkNorth();
+			break;
+		case NORTH:
+			isLeftWallApproach = checkWest();
+			break;
+		case SOUTH:
+			isLeftWallApproach = checkEast();
+			break;
+		case WEST:
+			isLeftWallApproach = checkSouth();
+			break;
+		default:
+			break;
+		}	
+			
+		return isLeftWallApproach;
+	}
+
+	
+	
+
+	private boolean isRightWallApproaching() {
+		boolean isRightWallApproach = false;
+		switch (getOrientation()) {
+		case EAST:
+			//judge south side(right side) becauase behind
+			isRightWallApproach =  checkSouth();
+			break;
+		case NORTH:
+			isRightWallApproach = checkEast();
+			break;
+		case SOUTH:
+			isRightWallApproach = checkWest();
+			break;
+		case WEST:
+			isRightWallApproach = checkNorth();
+			break;
+		default:
+			break;
+		}	
+			
+		return isRightWallApproach;
+	}
+
+	private void setFrontRoadAsWall(int delta) {
+		switch(getOrientation()){
+		case EAST:
+			setEastRoadAsWall(delta);
+			break;
+		case NORTH:
+			setNorthRoadAsWall(delta);
+			break;
+		case SOUTH:
+			setSouthRoadAsWall(delta);
+			break;
+		case WEST:
+			setWestRoadAsWall(delta);
 			break;
 		default:
 			break;
@@ -179,41 +292,62 @@ public class MyAIController extends CarController{
 		
 	}
 
-	private void setWestRoadAsWall() {
+	private void setWestRoadAsWall(int delta) {
 		Coordinate currentPosition = new Coordinate(getPosition());
-		regardWallTileMap.put(new Coordinate(currentPosition.x-2, currentPosition.y), new MapTile("Wall"));
-		regardWallTileMap.put(new Coordinate(currentPosition.x-2, currentPosition.y-1), new MapTile("Wall"));
-		regardWallTileMap.put(new Coordinate(currentPosition.x-2, currentPosition.y-2), new MapTile("Wall"));
+		regardWallTileMap.put(new Coordinate(currentPosition.x-delta, currentPosition.y), new MapTile("Wall"));
+		regardWallTileMap.put(new Coordinate(currentPosition.x-delta, currentPosition.y-1), new MapTile("Wall"));
+		regardWallTileMap.put(new Coordinate(currentPosition.x-delta, currentPosition.y-2), new MapTile("Wall"));
 		
 	}
 
-	private void setSouthRoadAsWall() {
+	private void setSouthRoadAsWall(int delta) {
 		Coordinate currentPosition = new Coordinate(getPosition());
-		regardWallTileMap.put(new Coordinate(currentPosition.x, currentPosition.y-2), new MapTile("Wall"));
-		regardWallTileMap.put(new Coordinate(currentPosition.x+1, currentPosition.y-2), new MapTile("Wall"));
-		regardWallTileMap.put(new Coordinate(currentPosition.x+2, currentPosition.y-2), new MapTile("Wall"));
+		regardWallTileMap.put(new Coordinate(currentPosition.x, currentPosition.y-delta), new MapTile("Wall"));
+		regardWallTileMap.put(new Coordinate(currentPosition.x+1, currentPosition.y-delta), new MapTile("Wall"));
+		regardWallTileMap.put(new Coordinate(currentPosition.x+2, currentPosition.y-delta), new MapTile("Wall"));
 		
 	}
 
-	private void setNorthRoadAsWall() {
+	private void setNorthRoadAsWall(int delta) {
 		Coordinate currentPosition = new Coordinate(getPosition());
-		regardWallTileMap.put(new Coordinate(currentPosition.x, currentPosition.y+2), new MapTile("Wall"));
-		regardWallTileMap.put(new Coordinate(currentPosition.x+1, currentPosition.y+2), new MapTile("Wall"));
-		regardWallTileMap.put(new Coordinate(currentPosition.x+2, currentPosition.y+2), new MapTile("Wall"));
+		regardWallTileMap.put(new Coordinate(currentPosition.x, currentPosition.y+delta), new MapTile("Wall"));
+		regardWallTileMap.put(new Coordinate(currentPosition.x+1, currentPosition.y+delta), new MapTile("Wall"));
+		regardWallTileMap.put(new Coordinate(currentPosition.x+2, currentPosition.y+delta), new MapTile("Wall"));
 	}
 
-	private void setEastRoadAsWall() {
+	private void setEastRoadAsWall(int delta) {
 		System.out.println("==================set east road");
 		Coordinate currentPosition = new Coordinate(getPosition());
 		//make the tile and the right tile regard as a wall by storing in our own map
-		regardWallTileMap.put(new Coordinate(currentPosition.x+2, currentPosition.y), new MapTile("Wall"));
-		regardWallTileMap.put(new Coordinate(currentPosition.x+2, currentPosition.y-1), new MapTile("Wall"));
-		regardWallTileMap.put(new Coordinate(currentPosition.x+2, currentPosition.y-2), new MapTile("Wall"));
+		regardWallTileMap.put(new Coordinate(currentPosition.x+delta, currentPosition.y), new MapTile("Wall"));
+		regardWallTileMap.put(new Coordinate(currentPosition.x+delta, currentPosition.y-1), new MapTile("Wall"));
+		regardWallTileMap.put(new Coordinate(currentPosition.x+delta, currentPosition.y-2), new MapTile("Wall"));
 
 
 		
 	}
-
+	/**
+	 * check if Left side has enough space for turning
+	 * @return true if has enough space
+	 */
+	private boolean checkLeftRoad() {
+		switch(getOrientation()){
+		case EAST:
+			return checkNorthRoad();
+		case NORTH:
+			return checkWestRoad();
+		case SOUTH:
+			return checkEastRoad();
+		case WEST:
+			return checkSouthRoad();
+		default:
+			return false;
+		}
+	}
+	/**
+	 * check if Right side has enough space for turning
+	 * @return true if has enough space
+	 */
 	private boolean checkRightRoad() {
 		switch(getOrientation()){
 		case EAST:
@@ -279,6 +413,7 @@ public class MyAIController extends CarController{
 
 	private void setReverseTurn() {
 		reverse = true;
+		alreadSetWallFlag = false;
 		
 	}
 
@@ -352,7 +487,7 @@ public class MyAIController extends CarController{
 					isReversing = false;
 				}
 				if(reverse){
-//					reverse = false;
+
 				}
 				previousState = getOrientation();
 				System.out.println("state: "+previousState);
@@ -446,7 +581,6 @@ public class MyAIController extends CarController{
 	}
 	
 	
-
 	private void setThreePointTurn() {
 		threePointTurn = true;		
 	}
@@ -671,10 +805,6 @@ public class MyAIController extends CarController{
 		
 	}
 
-	
-	
-	
-	
 	private boolean checkFollowingWall() {
 		switch(getOrientation()){
 		case EAST:
@@ -689,10 +819,7 @@ public class MyAIController extends CarController{
 			return false;
 		}
 	}
-
 	
-	
-
 	private boolean checkWest() {
 		// Check tiles to my left
 				Coordinate currentPosition = new Coordinate(getPosition());
@@ -771,7 +898,6 @@ public class MyAIController extends CarController{
 	}
 
 	
-
 	private void applyRightTurn(float delta) {
 		switch(getOrientation()){
 		case EAST:
