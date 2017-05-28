@@ -421,7 +421,9 @@ public class MyAIController extends CarController{
 		}
 		return true;
 	}
-
+	/**
+	 * Set reverse related flag
+	 */
 	private void setReverseTurn() {
 		reverse = true;
 		alreadSetWallFlag = false;
@@ -445,7 +447,9 @@ public class MyAIController extends CarController{
 	}
 
 	
-
+	/**
+	 * Set right turn related flag
+	 */
 	private void setRightTurn() {
 		lastTurnDirection = WorldSpatial.RelativeDirection.RIGHT;
 		isTurningRight = true;
@@ -506,7 +510,11 @@ public class MyAIController extends CarController{
 		}
 		
 	}
-
+	/**
+	 * Actual update function in 3-point-turn
+	 * @param delta time slot get from update()
+	 * @param previousAngle Angle starting the 3-point-turn
+	 */
 	private void reactThreePointTurn(float delta, float previousAngle) {
 		
 		int disAheadWall = getDistanceAheadWall();
@@ -591,18 +599,29 @@ public class MyAIController extends CarController{
 		}
 	}
 	
-	
+	/**
+	 * Set three-point turn related flag
+	 */
 	private void setThreePointTurn() {
 		threePointTurn = true;		
 	}
-
+	/**
+	 * Set left turn related flag
+	 */
 	private void setLeftTurn() {
 		lastTurnDirection = WorldSpatial.RelativeDirection.LEFT;
 		normTurnLeft = true;
 		isTurningLeft = true;
 		
 	}
-
+	/**
+	 * Detect if forwarding is a dead-end and get solution type of the dead-end.
+	 * @return WorldDeadEnd
+	 * WorldDeadEnd.THREEPOINT if the there is a dead-end and the solution type is to three-point-turn.
+	 * WorldDeadEnd.REVERSEOUT if the there is a dead-end and the solution type is to reverse.
+	 * WorldDeadEnd.UTURN if the there is a dead-end and the solution type is to u-turn.
+	 * WorldDeadEnd.AHEADWALL if there is not a dead-end and only is a wall ahead.
+	 */
 	private WorldDeadEnd detectDeadEnd() {
 		System.out.println("check end");
 		int disAheadWall = getDistanceAheadWall();
@@ -621,7 +640,10 @@ public class MyAIController extends CarController{
 		
 		return null;
 	}
-	
+	/**
+	 * Get distance from the left side of the current orientation. This include Trap calculate
+	 * @return distance to the wall(or trap regarded as wall)
+	 */
 	private int getDistanceLeftWall() {
 		switch(getOrientation()){
 		case EAST:
@@ -636,7 +658,10 @@ public class MyAIController extends CarController{
 			return -1;
 		}
 	}
-
+	/**
+	 * Get distance from the right side of the current orientation. This include Trap calculate
+	 * @return distance to the wall(or trap regarded as wall)
+	 */
 	private int getDisRightWall() {
 		switch(getOrientation()){
 		case EAST:
@@ -651,7 +676,10 @@ public class MyAIController extends CarController{
 			return -1;
 		}
 	}
-	
+	/**
+	 * Get distance from the current orientation. This include Trap calculate
+	 * @return distance to the wall(or trap regarded as wall)
+	 */
 	private int getDistanceAheadWall() {
 		switch(getOrientation()){
 		case EAST:
@@ -667,7 +695,10 @@ public class MyAIController extends CarController{
 			}
 		
 	}
-
+	/**
+	 * Get distance forwarding South. This include Trap calculate
+	 * @return distance to the wall(or trap regarded as wall)
+	 */
 	private int getDisSouth() {
 		Coordinate currentPosition = new Coordinate(getPosition());
 		for(int i = 0; i <= Car.VIEW_SQUARE; i++){
@@ -687,7 +718,10 @@ public class MyAIController extends CarController{
 		}
 		return -1;
 	}
-
+	/**
+	 * Get distance forwarding East. This include Trap calculate
+	 * @return distance to the wall(or trap regarded as wall)
+	 */
 	private int getDisEast() {
 		Coordinate currentPosition = new Coordinate(getPosition());
 		for(int i = 0; i <= Car.VIEW_SQUARE; i++){
@@ -706,7 +740,10 @@ public class MyAIController extends CarController{
 		}
 		return -1;
 	}
-
+	/**
+	 * Get distance forwarding West. This include Trap calculate
+	 * @return distance to the wall(or trap regarded as wall)
+	 */
 	private int getDisWest() {
 		Coordinate currentPosition = new Coordinate(getPosition());
 		for(int i = 0; i <= Car.VIEW_SQUARE; i++){
@@ -725,7 +762,10 @@ public class MyAIController extends CarController{
 		}
 		return -1;
 	}
-
+	/**
+	 * Get distance forwarding North. This include Trap calculate
+	 * @return distance to the wall(or trap regarded as wall)
+	 */
 	private int getDisNorth() {
 		Coordinate currentPosition = new Coordinate(getPosition());
 		for(int i = 0; i <= Car.VIEW_SQUARE; i++){
@@ -800,7 +840,10 @@ public class MyAIController extends CarController{
 		return false;
 	}
 	
-
+	/**
+	 * act Left turn
+	 * @param delta time import from the update()
+	 */
 	private void reactLeftTurn(float delta) {
 		if(!checkFollowingWall()){
 			if(getVelocity()<0.65*CAR_SPEED){
@@ -815,7 +858,10 @@ public class MyAIController extends CarController{
 		}
 		
 	}
-
+	/**
+	 	* Check the left side if there is wall to check the car is following the wall
+	 * @return true if the car is following the wall
+	 */
 	private boolean checkFollowingWall() {
 		switch(getOrientation()){
 		case EAST:
@@ -830,7 +876,10 @@ public class MyAIController extends CarController{
 			return false;
 		}
 	}
-	
+	/**
+	 * Check if range of wallSensitivity has wall from the west side;
+	 * @return true if in range of wallSensitivity from west side has wall;
+	 */
 	private boolean checkWest() {
 		// Check tiles to my left
 				Coordinate currentPosition = new Coordinate(getPosition());
@@ -842,7 +891,10 @@ public class MyAIController extends CarController{
 				}
 				return false;
 	}
-
+	/**
+	 * Check if range of wallSensitivity has wall from the South side;
+	 * @return true if in range of wallSensitivity from South side has wall;
+	 */
 	private boolean checkSouth() {
 		// Check tiles to towards the top
 				Coordinate currentPosition = new Coordinate(getPosition());
@@ -854,7 +906,10 @@ public class MyAIController extends CarController{
 				}
 				return false;
 	}
-
+	/**
+	 * Check if range of wallSensitivity has wall from the North side;
+	 * @return true if in range of wallSensitivity from North side has wall;
+	 */
 	private boolean checkNorth() {
 		// Check tiles to towards the top
 				Coordinate currentPosition = new Coordinate(getPosition());
@@ -866,7 +921,10 @@ public class MyAIController extends CarController{
 				}
 				return false;
 	}
-
+	/**
+	 * Check if range of wallSensitivity has wall from the East side;
+	 * @return true if in range of wallSensitivity from East side has wall;
+	 */
 	private boolean checkEast() {
 		// Check tiles to my right
 				Coordinate currentPosition = new Coordinate(getPosition());
@@ -937,7 +995,7 @@ public class MyAIController extends CarController{
 		
 		}		
 	}
-
+	
 	private void readjust(float delta) {
 		if(lastTurnDirection != null){
 			if(!isTurningRight && lastTurnDirection.equals(WorldSpatial.RelativeDirection.RIGHT)){
